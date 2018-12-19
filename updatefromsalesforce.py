@@ -90,15 +90,18 @@ def update_from_sfdc(sf, pg, local_tablename, remote_objectname, local_to_remote
 
   if not result['done'] and result['totalSize'] / len(result['records']) >= 5:
     # Switch to Bulk API for large datasets
-    number_rows_remote = result['totalSize']
+    # number_rows_remote = result['totalSize']
 
     # print("expecting %s rows" % number_rows_remote)
     print("switching to bulk query...")
 
+    number_rows_remote = sf.query('select count() from %s' % remote_objectname)['totalSize']
+
+    # TODO: can we get only new records and insert those?
     # TODO: if you get an IndexError at simple_salesforce/bulk.py line 161,
     # it's probably because of a query error. Run with the non-bulk API to see
     # the actual error.
-    records = getattr(sf.bulk, remote_objectname).query(query)
+    records = getattr(sf.bulk, remote_objectname).query("select %s from %s" % (', '.join(remote_fields), remote_objectname))
 
     if number_rows_remote != len(records):
       raise Exception("expected %s records but got %s. You may have hit a race condition, in which case try again. Otherwise, you're probably encountering a bug in simple_salesforce bulk queries where it only returns the first file." % ( number_rows_remote, len(records)))
@@ -110,7 +113,7 @@ def update_from_sfdc(sf, pg, local_tablename, remote_objectname, local_to_remote
     for r in records:
       w.writerow([field_transformations[i](r[fieldname]) for i, fieldname in enumerate(remote_fields)])
     f.seek(0)
-    # cur.execute('DELETE FROM %s' % local_tablename)
+    cur.execute('DELETE FROM %s' % local_tablename)
     cur.copy_expert("COPY %s FROM STDIN WITH CSV HEADER DELIMITER AS ','" % local_tablename, f)
     pg.commit()
 
