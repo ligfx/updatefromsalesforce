@@ -123,7 +123,7 @@ def update_from_sfdc(sf, pg, local_tablename, remote_objectname, local_to_remote
       result = sf.query_more(result['nextRecordsUrl'], True)
       records += result['records']
 
-    for record in result['records']:
+    for record in records:
       command = cur.mogrify(
       """insert into %s (%s)
        values (%s)
