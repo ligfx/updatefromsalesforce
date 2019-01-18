@@ -122,6 +122,7 @@ def update_from_sfdc(sf, pg, local_tablename, remote_objectname, local_to_remote
     while not result['done']:
       result = sf.query_more(result['nextRecordsUrl'], True)
       records += result['records']
+      print("got %s more records" % (len(result['records'])))
 
     for record in records:
       command = cur.mogrify(
